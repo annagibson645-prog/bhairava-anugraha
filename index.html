@@ -915,6 +915,57 @@
     body.is-folio-view .about { display: none; }
     body:not(.is-folio-view) .folio-page { display: none; }
 
+    /* --------- MARGINALIA RAILS (folio-page edge decoration) --------- */
+    .rail {
+      position: fixed; top: 80px; bottom: 0;
+      width: 160px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .rail.left  { left: 16px;  }
+    .rail.right { right: 16px; }
+    .rail::before {
+      content: ""; position: absolute; top: 12%; bottom: 12%;
+      width: 1px;
+      background: linear-gradient(180deg, transparent, rgba(212,166,74,0.30) 14%, rgba(212,166,74,0.30) 86%, transparent);
+    }
+    .rail.left::before  { right: 60px; }
+    .rail.right::before { left: 60px; }
+    .rail span { position: absolute; }
+    .rail .orn {
+      font-family: var(--display); font-style: italic;
+      font-size: 18px; color: var(--gold);
+    }
+    .rail .orn.o3 { font-size: 26px; }
+    .rail .rail-skt {
+      font-family: var(--skt); font-size: 16px;
+      color: var(--gold-2); letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .rail .lab {
+      font-family: var(--mono); font-size: 8px; letter-spacing: 0.3em;
+      color: var(--ink-mute); text-transform: uppercase;
+      writing-mode: vertical-rl; text-orientation: mixed; white-space: nowrap;
+    }
+    .rail .o1 { top: 9%; }
+    .rail .o2 { top: 27%; }
+    .rail .o3 { top: 50%; }
+    .rail .o4 { top: 73%; }
+    .rail .o5 { bottom: 7%; }
+    .rail .s1 { top: 17%; }
+    .rail .s2 { top: 39%; }
+    .rail .s3 { top: 61%; }
+    .rail .s4 { top: 83%; }
+    .rail .lab1 { top: 30%; }
+    .rail .lab2 { top: 62%; }
+    .rail.left  .orn      { right: 52px; }
+    .rail.left  .rail-skt { right: 72px; }
+    .rail.left  .lab      { right: 22px; }
+    .rail.right .orn      { left: 52px; }
+    .rail.right .rail-skt { left: 72px; }
+    .rail.right .lab      { left: 22px; }
+    /* Rails only appear on wide screens where the gutter is genuinely empty. */
+    @media (max-width: 1440px) { .rail { display: none; } }
+
     @media (max-width: 1100px) {
       .chrome-inner { padding: 16px 28px; gap: 24px; }
       .chrome .nav { gap: 22px; }
@@ -1322,6 +1373,32 @@
   <section class="folio-page" id="folio-page">
     <div class="leaf-field"></div>
     <div class="grain"></div>
+    <div class="rail left" aria-hidden="true">
+      <span class="orn o1">◇</span>
+      <span class="rail-skt s1">मन्त्र</span>
+      <span class="orn o2">❖</span>
+      <span class="lab lab1 rail-folio-label">FOLIO</span>
+      <span class="rail-skt s2">जप</span>
+      <span class="orn o3">◇</span>
+      <span class="rail-skt s3">साधना</span>
+      <span class="orn o4">❖</span>
+      <span class="lab lab2 rail-count-label">ENTRIES</span>
+      <span class="rail-skt s4">अनुष्ठान</span>
+      <span class="orn o5">◇</span>
+    </div>
+    <div class="rail right" aria-hidden="true">
+      <span class="orn o1">◇</span>
+      <span class="rail-skt s1">मन्त्र</span>
+      <span class="orn o2">❖</span>
+      <span class="lab lab1 rail-folio-label">FOLIO</span>
+      <span class="rail-skt s2">जप</span>
+      <span class="orn o3">◇</span>
+      <span class="rail-skt s3">साधना</span>
+      <span class="orn o4">❖</span>
+      <span class="lab lab2 rail-count-label">ENTRIES</span>
+      <span class="rail-skt s4">अनुष्ठान</span>
+      <span class="orn o5">◇</span>
+    </div>
     <div class="folio-page-inner">
       <div class="folio-back">
         <a id="folio-back-link">← Return to the index</a>
@@ -1908,6 +1985,9 @@
       document.getElementById("folio-name").textContent = cat.name;
       document.getElementById("folio-desc").textContent = FOLIO_DESCRIPTIONS[catKey] || "";
 
+      document.querySelectorAll(".rail-folio-label").forEach(el => { el.textContent = "FOLIO · " + cat.roman; });
+      document.querySelectorAll(".rail-count-label").forEach(el => { el.textContent = entries.length + " ENTRIES"; });
+
       const list = document.getElementById("folio-entries");
       list.innerHTML = entries.map(e => {
         const dateBits = e.date ? e.date.split(" ") : [];
@@ -1954,6 +2034,9 @@
       document.getElementById("folio-name").textContent = "The full Codex";
       document.getElementById("folio-desc").textContent =
         `All ${entries.length} entries in chronological order, as they were asked and answered — the manuscript without the chapter divisions.`;
+
+      document.querySelectorAll(".rail-folio-label").forEach(el => { el.textContent = "THE CODEX"; });
+      document.querySelectorAll(".rail-count-label").forEach(el => { el.textContent = entries.length + " ENTRIES"; });
 
       const list = document.getElementById("folio-entries");
       list.innerHTML = entries.map(e => {
@@ -2072,7 +2155,7 @@
       const isOverlayOpen = () => overlay.classList.contains("is-open");
       const isOpen = () => palette.classList.contains("is-open");
 
-      const idx = buildSearchIndex();
+      let idx = buildSearchIndex();
       countEl.textContent = `${DATA.entries.length} entries indexed`;
 
       let filtered = idx.slice();
@@ -2163,6 +2246,9 @@
 
       function openPalette() {
         if (isOverlayOpen()) return;
+        // Rebuild the index on open — guarantees it reflects the CSV data,
+        // which loads asynchronously after the page (and this script) parse.
+        idx = buildSearchIndex();
         palette.classList.add("is-open");
         document.body.style.overflow = "hidden";
         input.value = "";
